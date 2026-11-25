@@ -170,6 +170,20 @@ app.get('/api/v1/health/ready', (_req: Request, res: Response) => {
   });
 });
 
+// ── Public demo guard ─────────────────────────────────────────────────────────
+// When DEMO_MODE=true the deployment is a public portfolio demo with synthetic
+// data. Block the endpoints that let strangers mint new stores and admin
+// accounts, so the demo database cannot be abused as free tenant hosting.
+if (process.env.DEMO_MODE === 'true') {
+  app.use(['/api/v1/onboarding', '/api/v1/support'], (req, res, next) => {
+    if (req.method === 'GET' || req.method === 'OPTIONS') return next();
+    res.status(403).json({ success: false, code: 'DEMO_MODE', message: 'Disabled in the public demo.' });
+  });
+  app.post('/api/v1/stores', (_req, res) => {
+    res.status(403).json({ success: false, code: 'DEMO_MODE', message: 'Disabled in the public demo.' });
+  });
+}
+
 // ── Store management routes (no store context needed) ─────────────────────────
 app.use('/api/v1/stores', storeRoutes);
 

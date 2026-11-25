@@ -74,6 +74,20 @@ export async function placeOrder(
   const storeObjId    = new Types.ObjectId(storeId);
   const customerObjId = new Types.ObjectId(customerId);
 
+  // ── Public demo caps ────────────────────────────────────────────────────────
+  // Only active when DEMO_MODE=true. Keeps a public portfolio demo from being
+  // filled with orders: a few per customer per day, and a hard ceiling per store.
+  if (process.env.DEMO_MODE === 'true') {
+    const { Order } = await import('./order.model');
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [mine, total] = await Promise.all([
+      Order.countDocuments({ storeId: storeObjId, customerId: customerObjId, createdAt: { $gte: dayAgo } }),
+      Order.countDocuments({ storeId: storeObjId }),
+    ]);
+    if (mine >= 5) throw createError('Demo limit reached: 5 test orders per day per account.', 429, 'DEMO_LIMIT');
+    if (total >= 2000) throw createError('The demo has reached its test-order limit.', 429, 'DEMO_LIMIT');
+  }
+
   // Currency is snapshotted onto the order so historical amounts stay
   // interpretable if the store later switches currency.
   const { Store } = await import('../stores/store.model');
