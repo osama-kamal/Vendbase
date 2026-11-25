@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -257,6 +259,19 @@ tenantRouter.use('/shipping', shippingRoutes);
 tenantRouter.use('/tax', taxRoutes);
 
 app.use('/api/v1', tenantRouter);
+
+// ── Demo: serve the built client from this process ────────────────────────────
+// Only when DEMO_MODE=true and a ./public build exists (the root Dockerfile
+// puts it there). Non-API GETs fall back to index.html for client-side routing.
+if (process.env.DEMO_MODE === 'true') {
+  const publicDir = path.resolve(__dirname, '..', 'public');
+  if (fs.existsSync(path.join(publicDir, 'index.html'))) {
+    app.use(express.static(publicDir, { index: false, maxAge: '1h' }));
+    app.get(/^\/(?!api\/).*/, (_req: Request, res: Response) => {
+      res.sendFile(path.join(publicDir, 'index.html'));
+    });
+  }
+}
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use(notFound);
