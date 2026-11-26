@@ -73,6 +73,17 @@ async function main(): Promise<void> {
     // Already seeded with the real catalogue: nothing to do. Otherwise replace
     // the older placeholder products of this synthetic demo store.
     await applyStorePublic(existing._id);
+    if (SHIPPING_ZONES.length === 0) {
+      // Remove ONLY the placeholder shipping created by the first demo seed
+      // (exact name, countries and flat rate); the original store has none.
+      const legacy = await ShippingZone.find({ storeId: existing._id, name: 'Demo countries', countries: { $all: ['EG', 'US', 'GB', 'DE', 'SA', 'AE'], $size: 6 } } as never).lean();
+      for (const z of legacy) {
+        const r = await ShippingRate.deleteMany({ storeId: existing._id, zoneId: z._id, name: 'Standard (demo)', type: 'flat', flatAmount: 5 } as never);
+        const left = await ShippingRate.countDocuments({ zoneId: z._id } as never);
+        if (left === 0) await ShippingZone.deleteOne({ _id: z._id } as never);
+        console.log(`Removed legacy placeholder shipping: ${r.deletedCount} rate(s), zone ${left === 0 ? 'removed' : 'kept'}.`);
+      }
+    }
     if (await Product.exists({ storeId: existing._id, name: MARKER } as never)) {
       console.log(`Store "${SLUG}" already has the catalogue, nothing to do.`);
     } else {
