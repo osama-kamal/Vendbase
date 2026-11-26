@@ -440,8 +440,8 @@ export default function StorefrontLayout() {
             whatever the active theme specifies otherwise. */}
         <div className="min-h-screen flex flex-col">
           {import.meta.env.VITE_DEMO_MODE === 'true' && (
-            <div role="note" className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
-              <strong>Demo store.</strong> Sample data only. Orders are not real: nothing is shipped or charged. Please use fake details, not your real address or phone.
+            <div role="note" className="border-b border-gray-200 bg-gray-100 px-4 py-2 text-center text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              <strong className="font-semibold text-gray-900 dark:text-white">Demo store.</strong> Sample data only. Orders are not real: nothing is shipped or charged. Please use fake details, not your real address or phone.
             </div>
           )}
           <StorefrontNavbar store={store} slug={slug!} />

@@ -111,11 +111,18 @@ app.use(limiter);
 // raw Buffer for HMAC verification (Stripe, Paymob) must be mounted here, BEFORE
 // the global JSON parser runs, so express.raw() on those routes gets first access
 // to the unconsumed stream.
+// Public demo: no payment gateway is ever contacted. Every payment route
+// (intents, Paymob init, webhooks) is refused before it reaches a provider.
+if (process.env.DEMO_MODE === 'true') {
+  app.use('/api/v1/payments', (_req, res) => {
+    res.status(403).json({ success: false, code: 'DEMO_MODE', message: 'Online payments are disabled in the public demo. Use Cash on Delivery.' });
+  });
+}
 app.use('/api/v1/payments', paymentRoutes);
 
 // ── Body parsing (applies to all routes registered after this point) ──────────
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: process.env.DEMO_MODE === 'true' ? '20kb' : '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: process.env.DEMO_MODE === 'true' ? '20kb' : '100kb', parameterLimit: process.env.DEMO_MODE === 'true' ? 200 : 1000 }));
 
 // ── NoSQL injection sanitization ──────────────────────────────────────────────
 // MUST come AFTER the body parsers. express-mongo-sanitize walks req.body,
@@ -180,6 +187,19 @@ if (process.env.DEMO_MODE === 'true') {
   app.use(['/api/v1/onboarding', '/api/v1/support'], (req, res, next) => {
     if (req.method === 'GET' || req.method === 'OPTIONS') return next();
     res.status(403).json({ success: false, code: 'DEMO_MODE', message: 'Disabled in the public demo.' });
+  });
+  // No file uploads in the public demo (image processing is the heaviest path).
+  app.use('/api/v1', (req, res, next) => {
+    if ((req.headers['content-type'] || '').toLowerCase().startsWith('multipart/')) {
+      res.status(403).json({ success: false, code: 'DEMO_MODE', message: 'Uploads are disabled in the public demo.' });
+      return;
+    }
+    next();
+  });
+  // Orders in the demo can only be Cash on Delivery (the API default is online).
+  app.post('/api/v1/orders', (req, res, next) => {
+    if (req.body && req.body.paymentMethod === 'cod') return next();
+    res.status(403).json({ success: false, code: 'DEMO_MODE', message: 'Only Cash on Delivery orders are allowed in the public demo.' });
   });
   app.post('/api/v1/stores', (_req, res) => {
     res.status(403).json({ success: false, code: 'DEMO_MODE', message: 'Disabled in the public demo.' });
