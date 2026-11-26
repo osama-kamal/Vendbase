@@ -8,6 +8,8 @@ Tenancy is enforced at every layer. Stores are resolved per request from a hostn
 
 Money is computed in one place. A single pure engine derives subtotal, discount, shipping, tax and grand total at checkout, and a matching engine prorates them back out on refund — so a quote, an invoice and a refund cannot disagree.
 
+**Live demo:** <https://ecommerce-backend-production-5474.up.railway.app/s/demo-store> (sample data, see [Live Demo](#-live-demo))
+
 > **Status:** actively developed. A security, production-hardening, bug-fix, and UI/UX pass has been completed — see [Current Project Status](#-current-project-status) and [Known Limitations](#-known-limitations) for an honest account of what is and is not finished.
 
 ---
@@ -19,7 +21,8 @@ Money is computed in one place. A single pure engine derives subtotal, discount,
 3. [Tech Stack](#-tech-stack)
 4. [Architecture](#️-architecture)
 5. [Folder Structure](#-folder-structure)
-6. [Installation](#-installation)
+6. [Screenshots](#-screenshots) and [Live Demo](#-live-demo)
+   · [Installation](#-installation)
 7. [Environment Variables](#-environment-variables)
 8. [Docker Usage](#-docker-usage)
 9. [Local Development](#-local-development)
@@ -400,6 +403,8 @@ Backend variables are declared and validated by a Zod schema in [`backend/src/co
 |---|---|---|---|
 | `PENDING_ORDER_TTL_MINUTES` | No | `30` | Minutes before an abandoned online checkout is cancelled and its stock released. COD orders are never expired |
 | `ALLOW_UNVERIFIED_REVIEWS` | No | `false` | Set `true` only for demo/seed environments. Leave unset in production so reviews require a delivered order |
+| `DEMO_MODE` | No | unset | Public-demo guard (`demo-mode` branch). When `true`, payments, onboarding, uploads and store creation are refused and test orders are capped. Never set in production |
+| `DEMO_STORE_SLUG` | No | `demo-store` | Slug used by `seed-demo.ts` for the demo store (`demo-mode` branch) |
 
 ### Frontend (`client/.env`)
 
@@ -407,10 +412,11 @@ Backend variables are declared and validated by a Zod schema in [`backend/src/co
 |---|---|---|
 | `VITE_STRIPE_PUBLISHABLE_KEY` | **Yes for card payments** | Stripe publishable key. Inlined at **build** time — without a valid key a production build disables card payment rather than offering a bypass (see `src/utils/checkoutMode.ts`) |
 | `VITE_API_URL` | Local dev / Docker build | Backend URL for the Vite dev proxy |
+| `VITE_DEMO_MODE` | No | Build-time flag set by the root `Dockerfile` (`demo-mode` branch). Shows the "Demo store" banner on storefronts |
 | `VITE_DEV_STORE_SLUG` | No, **dev only** | Makes the root behave like one store's storefront on localhost. Ignored in any production build (`src/utils/devStoreOverride.ts`) |
 
-These three are the complete set of `VITE_` variables the codebase reads.
-`VITE_STRIPE_PUBLISHABLE_KEY` and `VITE_DEV_STORE_SLUG` are read by `src/`;
+These four are the complete set of `VITE_` variables the codebase reads on the `demo-mode` branch (three on `master`).
+`VITE_STRIPE_PUBLISHABLE_KEY`, `VITE_DEMO_MODE` and `VITE_DEV_STORE_SLUG` are read by `src/`;
 `VITE_API_URL` is read by `vite.config.ts`.
 
 > **There is no production store variable.** `VITE_STORE_ID` and
@@ -871,9 +877,36 @@ Applied to the login, register, forgot-password, reset-password, checkout, store
 
 ## 📸 Screenshots
 
-> **Screenshots will be added after the final UI/UX polish.**
->
-> No images are committed to the repository yet, and none are referenced here. Once the interface is final, screenshots will be added to a `docs/screenshots/` directory and linked from this section.
+Taken from the [live demo](#-live-demo) (synthetic sample data).
+
+| Storefront (desktop) | Product page (desktop) |
+|---|---|
+| ![Storefront on desktop](docs/screenshots/storefront-desktop.jpg) | ![Product page on desktop](docs/screenshots/product-desktop.jpg) |
+
+| Storefront (mobile) | Product page (mobile) |
+|---|---|
+| <img src="docs/screenshots/storefront-mobile.jpg" width="260" alt="Storefront on mobile"> | <img src="docs/screenshots/product-mobile.jpg" width="260" alt="Product page on mobile"> |
+
+The vendor dashboard and the platform admin are not shown because the public demo does not expose them.
+
+---
+
+## 🌐 Live Demo
+
+**<https://ecommerce-backend-production-5474.up.railway.app/s/demo-store>**
+
+A public demo of one storefront (`/s/demo-store`) running the code on the `demo-mode` branch. It is hosted on Railway as a single container that serves both the React build and the API (see the root [`Dockerfile`](Dockerfile)).
+
+What you can do: browse the catalogue, search, open product pages, register a customer account, add to cart and place a Cash on Delivery test order.
+
+What the demo turns off (all enforced in the API when `DEMO_MODE=true`):
+
+- Online payments. Every `/api/v1/payments` route is refused, and orders must use Cash on Delivery.
+- Store creation, onboarding and support requests, and file uploads.
+- Large request bodies (20 KB limit).
+- Test orders are capped at 5 per customer per day and 2,000 per store. Nothing is shipped or charged. Use fake details.
+
+The demo store's owner account gets a random password that is never stored, so nobody can sign in to its dashboard. The catalogue is synthetic and is created by `backend/src/scripts/seed-demo.ts`.
 
 ---
 
