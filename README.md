@@ -1,4 +1,10 @@
-# 🛍️ Multi-Tenant E-Commerce SaaS Platform
+<p align="center">
+  <img src="docs/banner.png" alt="Vendbase: multi-tenant storefronts for every vendor" width="100%">
+</p>
+
+# Vendbase
+
+**A multi-tenant e-commerce SaaS platform.**
 
 A multi-tenant e-commerce platform where each vendor gets an isolated storefront, product catalogue, order pipeline, and analytics dashboard — all served from a single deployment.
 
@@ -217,7 +223,7 @@ Request
 ## 📁 Folder Structure
 
 ```
-E-Commerce/
+Vendbase/
 ├── backend/
 │   ├── src/
 │   │   ├── modules/                  # 23 feature modules
@@ -296,8 +302,8 @@ E-Commerce/
 ### Clone and install
 
 ```bash
-git clone https://github.com/osama-kamal/E-Commerce-.git
-cd E-Commerce
+git clone https://github.com/osama-kamal/Vendbase.git
+cd Vendbase
 ```
 
 ```bash

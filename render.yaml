@@ -17,7 +17,7 @@
 #
 # How to use:
 #   1. Go to https://dashboard.render.com/select-repo
-#   2. Select your GitHub repo (osama-kamal/E-Commerce-)
+#   2. Select your GitHub repo (osama-kamal/Vendbase)
 #   3. Render detects this file and pre-fills everything below
 #   4. Set the environment variables marked (sync: false) in the Render dashboard
 #      under Environment → Secret Files / Environment Variables
