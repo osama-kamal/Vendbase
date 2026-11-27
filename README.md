@@ -6,6 +6,12 @@
 
 **A multi-tenant e-commerce SaaS platform.**
 
+<p align="center">
+  <img src="docs/vendbase-demo.gif" alt="Vendbase demo: storefront, product page, cart, checkout and order confirmation" width="100%">
+</p>
+
+<p align="center"><a href="docs/vendbase-demo.mp4">Watch the full 39-second walkthrough (MP4)</a> &nbsp;·&nbsp; recorded on the <a href="https://ecommerce-backend-production-5474.up.railway.app/s/demo-store">live demo store</a></p>
+
 A multi-tenant e-commerce platform where each vendor gets an isolated storefront, product catalogue, order pipeline, and analytics dashboard — all served from a single deployment.
 
 Built with **React 18 + TypeScript** on the front end and **Node.js + Express + MongoDB** on the back end, the platform covers the commerce lifecycle it implements today: onboarding a store, listing products, taking payments through two gateways, moving orders through a status pipeline, and billing vendors on a subscription plan.
