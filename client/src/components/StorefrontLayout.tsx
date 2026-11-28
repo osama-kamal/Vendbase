@@ -474,7 +474,11 @@ function DemoSandboxButton() {
       const res = await axios.post('/api/v1/demo/sandbox', null, { withCredentials: true });
       const { user, accessToken, store } = res.data.data;
       // Mirror the normal login flow (authSlice + LoginPage), then hard-navigate
-      // so the app reboots into the admin session cleanly.
+      // so the app reboots into the admin session cleanly. The storefront slug
+      // marker must go first: the axios interceptor prefers it over
+      // currentStoreId, so leaving it would scope admin calls to the master
+      // demo store and the sandbox token would be rejected as cross-tenant.
+      sessionStorage.removeItem('sf_active_slug');
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('currentStoreId', store._id);
