@@ -79,6 +79,11 @@ export interface IStore extends Document {
   suspensionScheduled?: boolean;      // cleared when payment is recovered
   customDomain?: string;
   isActive: boolean;
+  /** DEMO_MODE per-visitor sandbox: true on throwaway copies of the demo
+   *  store. Sandboxes are deleted once sandboxExpiresAt passes. Undefined on
+   *  every real store. */
+  isSandbox?: boolean;
+  sandboxExpiresAt?: Date;
   /**
    * Whether catalogue prices already contain tax.
    *
@@ -192,6 +197,8 @@ const storeSchema = new Schema<IStore>(
     subscriptionDunningStartedAt: { type: Date, default: null },
     suspensionScheduled: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
+    isSandbox: { type: Boolean, default: false },
+    sandboxExpiresAt: { type: Date, default: null },
     // `false` is the safe default: every existing store's prices were quoted
     // with no tax model at all, so treating them as tax-inclusive would
     // retroactively reinterpret the catalogue as containing VAT it never did.

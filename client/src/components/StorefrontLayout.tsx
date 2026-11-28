@@ -442,6 +442,7 @@ export default function StorefrontLayout() {
           {import.meta.env.VITE_DEMO_MODE === 'true' && (
             <div role="note" className="border-b border-gray-200 bg-gray-100 px-4 py-2 text-center text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
               <strong className="font-semibold text-gray-900 dark:text-white">Demo store.</strong> Sample data only. Orders are not real: nothing is shipped or charged. Please use fake details, not your real address or phone.
+              <DemoSandboxButton />
             </div>
           )}
           <StorefrontNavbar store={store} slug={slug!} />
@@ -453,5 +454,49 @@ export default function StorefrontLayout() {
         <ComparisonBar />
       </ThemeProvider>
     </StorefrontProvider>
+  );
+}
+
+/**
+ * One-click admin demo: mints a private sandbox store (a full copy of this
+ * demo store's catalogue) and drops the visitor into its dashboard, logged in
+ * as the sandbox admin. Anything they change lives only in their sandbox,
+ * which expires after 24 hours; this demo store stays untouched for everyone.
+ */
+function DemoSandboxButton() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const startSandbox = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await axios.post('/api/v1/demo/sandbox', null, { withCredentials: true });
+      const { user, accessToken, store } = res.data.data;
+      // Mirror the normal login flow (authSlice + LoginPage), then hard-navigate
+      // so the app reboots into the admin session cleanly.
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('currentStoreId', store._id);
+      window.location.assign('/admin');
+    } catch (err: any) {
+      setBusy(false);
+      setError(err?.response?.data?.message || 'Could not start the admin demo. Please try again in a moment.');
+    }
+  };
+
+  return (
+    <span className="inline-flex items-center gap-2 align-middle">
+      <button
+        type="button"
+        onClick={startSandbox}
+        disabled={busy}
+        className="ml-2 rounded-md bg-gray-900 px-3 py-1 text-xs font-semibold text-white hover:bg-gray-700 disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+      >
+        {busy ? 'Preparing your sandbox…' : 'Try the admin dashboard'}
+      </button>
+      <span className="text-xs text-gray-500 dark:text-gray-400">your own private copy, deleted after 24 hours</span>
+      {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+    </span>
   );
 }

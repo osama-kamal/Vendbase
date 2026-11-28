@@ -48,6 +48,7 @@ import storeRoutes from './modules/stores/store.routes';
 import onboardingRoutes from './modules/onboarding/onboarding.routes';
 import supportRoutes from './modules/support/support.routes';
 import planRoutes from './modules/plans/plan.routes';
+import demoRoutes from './modules/demo/demo.routes';
 
 const app = express();
 
@@ -204,6 +205,9 @@ if (process.env.DEMO_MODE === 'true') {
   app.post('/api/v1/stores', (_req, res) => {
     res.status(403).json({ success: false, code: 'DEMO_MODE', message: 'Disabled in the public demo.' });
   });
+  // Per-visitor sandbox stores: the ONLY way a new store can be created in
+  // the public demo. Sandboxes are capped, rate-limited and auto-expire.
+  app.use('/api/v1/demo', demoRoutes);
 }
 
 // ── Store management routes (no store context needed) ─────────────────────────

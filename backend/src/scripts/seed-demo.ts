@@ -16,55 +16,15 @@ import mongoose from 'mongoose';
 import { config } from '../config';
 import { onboardStore } from '../modules/onboarding/onboarding.service';
 import { Store } from '../modules/stores/store.model';
-import { Category } from '../modules/categories/category.model';
 import { Product } from '../modules/products/product.model';
 import { ShippingZone, ShippingRate } from '../modules/shipping/shipping.model';
-import { CATALOGUE, CATEGORY_TREE, STORE_PUBLIC, SHIPPING_ZONES, SHIPPING_RATES } from './demo-catalogue';
+import { CATALOGUE, STORE_PUBLIC, SHIPPING_ZONES, SHIPPING_RATES } from './demo-catalogue';
+import { applyStorePublic, seedCatalogue, seedShipping } from '../modules/demo/sandbox-catalogue';
 
 const SLUG = process.env.DEMO_STORE_SLUG ?? 'demo-store';
 
 // Stock is exactly as exported from the original store.
 const MARKER = CATALOGUE[CATALOGUE.length - 1].name;
-
-async function seedCatalogue(storeId: unknown): Promise<number> {
-  await Product.deleteMany({ storeId } as never);
-  await Category.deleteMany({ storeId } as never);
-  const ids: Record<string, unknown> = {};
-  for (const c of CATEGORY_TREE) {
-    const doc = await Category.create({
-      storeId,
-      name: c.name,
-      slug: c.slug,
-      parentId: c.parent ? ids[c.parent] : null,
-      level: c.parent ? 1 : 0,
-    } as never);
-    ids[c.slug] = (doc as any)._id;
-  }
-  for (const item of CATALOGUE) {
-    await Product.create({
-      storeId,
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      discount: item.discount,
-      stock: item.stock,
-      categoryId: ids[item.category],
-      images: item.images,
-      sizes: item.sizes,
-      averageRating: item.averageRating,
-      reviewCount: item.reviewCount,
-    } as never);
-  }
-  return CATALOGUE.length;
-}
-
-async function applyStorePublic(storeId: unknown): Promise<void> {
-  const set: Record<string, unknown> = { name: STORE_PUBLIC.name };
-  if (STORE_PUBLIC.currency) set.currency = STORE_PUBLIC.currency;
-  if (STORE_PUBLIC.theme) set.theme = STORE_PUBLIC.theme;
-  if (STORE_PUBLIC.logoUrl) set['settings.logoUrl'] = STORE_PUBLIC.logoUrl;
-  await Store.updateOne({ _id: storeId } as never, { $set: set });
-}
 
 async function main(): Promise<void> {
   await mongoose.connect(config.MONGODB_URI);
@@ -104,17 +64,7 @@ async function main(): Promise<void> {
   const storeId = (result as { store: { _id: unknown } }).store._id;
   await applyStorePublic(storeId);
   const n = await seedCatalogue(storeId);
-  if (SHIPPING_ZONES.length > 0 && SHIPPING_RATES.length > 0) {
-    // Shipping exactly as configured in the original store.
-    const zoneIds: Record<string, unknown> = {};
-    for (const z of SHIPPING_ZONES) {
-      const doc = await ShippingZone.create({ storeId, name: z.name, countries: z.countries, isActive: z.isActive, sortOrder: z.sortOrder } as never);
-      zoneIds[z.key] = (doc as any)._id;
-    }
-    for (const r of SHIPPING_RATES) {
-      await ShippingRate.create({ storeId, zoneId: zoneIds[r.zoneKey], name: r.name, description: r.description || undefined, type: r.type, flatAmount: r.flatAmount, freeOverThreshold: r.freeOverThreshold, tiers: r.tiers, isActive: r.isActive, sortOrder: r.sortOrder } as never);
-    }
-  }
+  await seedShipping(storeId);
   // No zones exported means the original store has shipping NOT configured:
   // checkout then charges no shipping, exactly like the original. Nothing is invented.
   console.log(`Seeded demo store "${SLUG}" with ${n} products.`);
