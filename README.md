@@ -10,7 +10,7 @@
   <img src="docs/vendbase-demo.gif" alt="Vendbase demo: storefront, product page, cart, checkout and order confirmation" width="100%">
 </p>
 
-<p align="center"><a href="docs/vendbase-demo.mp4">Watch the full 39-second walkthrough (MP4)</a> &nbsp;·&nbsp; recorded on the <a href="https://ecommerce-backend-production-5474.up.railway.app/s/demo-store">live demo store</a></p>
+<p align="center"><a href="docs/vendbase-demo.mp4">Watch the full 39-second walkthrough (MP4)</a> &nbsp;·&nbsp; recorded on the <a href="https://vendbase-demo.vercel.app/s/demo-store">live demo store</a></p>
 
 <p align="center"><em>If the free hosting behind the live demo ever runs out, the recording above is the stand-in: it shows the same storefront, product, cart, checkout and order flow end to end.</em></p>
 
@@ -22,7 +22,7 @@ Tenancy is enforced at every layer. Stores are resolved per request from a hostn
 
 Money is computed in one place. A single pure engine derives subtotal, discount, shipping, tax and grand total at checkout, and a matching engine prorates them back out on refund — so a quote, an invoice and a refund cannot disagree.
 
-**Live demo:** <https://ecommerce-backend-production-5474.up.railway.app/s/demo-store> (sample data, see [Live Demo](#-live-demo))
+**Live demo:** <https://vendbase-demo.vercel.app/s/demo-store> (sample data, see [Live Demo](#-live-demo))
 
 > **Status:** actively developed. A security, production-hardening, bug-fix, and UI/UX pass has been completed — see [Current Project Status](#-current-project-status) and [Known Limitations](#-known-limitations) for an honest account of what is and is not finished.
 
@@ -595,7 +595,7 @@ Consolidates duplicate *privileged* rows for one address onto a single owning ac
 
 ### Current topology
 
-The frontend deploys to **Vercel** ([`client/vercel.json`](client/vercel.json)), which rewrites `/api/:path*` to a Railway-hosted backend and sets `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, and `Referrer-Policy` headers plus immutable caching for `/assets/`.
+The live demo deploys to **Vercel** as a single project (root [`vercel.json`](vercel.json)): the Vite client build is served as static files and `/api/:path*` routes to a serverless function ([`api/index.js`](api/index.js)) wrapping the compiled Express app, with `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, and `Referrer-Policy` headers plus immutable caching for `/assets/`. [`client/vercel.json`](client/vercel.json) is the older split-deployment config (static frontend rewriting `/api/:path*` to a separate backend) and is not what the live demo uses.
 
 [`render.yaml`](render.yaml) is an **alternative** backend blueprint and is not the active host. If you deploy there instead, you must also update the Vercel rewrite destination, `CORS_ORIGINS`, and the payment webhook URLs. Vercel does not support environment interpolation in rewrite destinations, so that backend URL is hardcoded in `vercel.json`.
 
@@ -835,7 +835,7 @@ Each item below is implemented in the current codebase and, where noted, pinned 
 | **Rate limiting** | Global 300/min plus dedicated budgets: auth 10/15min (successful requests skipped), signup 5/hour, AI chat 30/15min, coupon validation 20/15min, and an email-sending limiter. Suite: `rate-limits` |
 | **Email safety** | All user-controlled values HTML-escaped before interpolation into email bodies. Suite: `email-html-escaping` |
 | **Hardcoded recipient removed** | Platform notifications now require `ADMIN_NOTIFY_EMAIL`; a personal address was previously hardcoded as a fallback in two files, silently forwarding new deployments' sales leads |
-| **Transport & headers** | Helmet, CORS allow-list with explicit methods/headers, `trust proxy` for correct client IPs behind Railway; nginx and Vercel both set `nosniff`, `X-Frame-Options: DENY`, and `Referrer-Policy` |
+| **Transport & headers** | Helmet, CORS allow-list with explicit methods/headers, `trust proxy` for correct client IPs behind the hosting proxy; nginx and Vercel both set `nosniff`, `X-Frame-Options: DENY`, and `Referrer-Policy` |
 | **Payment iframe sandboxing** | The Paymob iframe uses `allow-top-navigation-by-user-activation` rather than unrestricted top navigation, closing a phishing primitive. Origin checking is unit-tested (`paymobOrigin`) |
 | **Checkout key handling** | A production build with a missing or malformed publishable key **disables** card payment instead of falling through to a bypass. Suite: `checkoutMode` |
 | **Uploads** | MIME allow-list (JPEG/PNG/WebP/GIF), 10 MB cap, memory storage streamed straight to Cloudinary — no disk writes |
@@ -907,9 +907,9 @@ The vendor dashboard and the platform admin are not shown because the public dem
 
 ## 🌐 Live Demo
 
-**<https://ecommerce-backend-production-5474.up.railway.app/s/demo-store>**
+**<https://vendbase-demo.vercel.app/s/demo-store>**
 
-A public demo of one storefront (`/s/demo-store`) running the code on the `demo-mode` branch. It is hosted on Railway as a single container that serves both the React build and the API (see the root [`Dockerfile`](Dockerfile)).
+A public demo of one storefront (`/s/demo-store`). It is hosted on Vercel's free Hobby plan — the React build is served statically and the Express API runs as a serverless function (root [`vercel.json`](vercel.json) + [`api/index.js`](api/index.js)) — backed by a free MongoDB Atlas M0 cluster. The root [`Dockerfile`](Dockerfile) remains the single-container option for hosts like Railway or Render.
 
 What you can do: browse the catalogue, search, open product pages, register a customer account, add to cart and place a Cash on Delivery test order.
 
@@ -1063,7 +1063,7 @@ Stated plainly so nobody discovers these the hard way:
 14. **The rule-based chatbot fallback quotes a return policy the platform does not implement** — a 30-day return window is a hardcoded response string. Refunds are now real (merchant-initiated, line-level), but there is no customer-facing *returns* workflow behind that promise.
 15. **The chatbot fallback is not truly bilingual.** It recognises Arabic keywords but always answers in English.
 16. **`PUT /plans/:planId` accepts `admin` as well as `super-admin`** by design, so the frontend works with a store-scoped token during platform sessions. The stricter guard lives on the client route.
-17. **The Vercel rewrite target is hardcoded** to a Railway URL in `client/vercel.json`, because Vercel does not interpolate environment variables in rewrite destinations.
+17. **The legacy split-deployment rewrite target is hardcoded** to a Railway URL in `client/vercel.json`, because Vercel does not interpolate environment variables in rewrite destinations. The live demo does not use that file; it uses the root `vercel.json` single-project deploy.
 18. **Subdomain and custom-domain storefronts need DNS and TLS that do not exist yet.** Host resolution is implemented and tested, but a wildcard record plus certificate (and per-domain verification for custom domains) must be provisioned before either addressing form does anything. Until then every host resolves to platform mode and `/s/<slug>` is the working route — see [DOMAINS.md](DOMAINS.md).
 19. **Custom domains are not ownership-verified.** `customDomain` is currently an operator-set field; there is no challenge proving the merchant controls the domain before the platform serves it.
 20. **No customer-facing returns (RMA) workflow.** Merchants can issue line-level refunds from the admin, and out-of-band refunds made in the Stripe dashboard are reconciled — but a customer cannot request a return, and there is no approval queue or return-shipping step.
