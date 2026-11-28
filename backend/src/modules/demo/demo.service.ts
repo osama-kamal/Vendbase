@@ -88,7 +88,9 @@ export async function createSandbox(): Promise<SandboxResult> {
 
   const storeId = (result.store as { _id: unknown })._id;
   const expiresAt = new Date(Date.now() + SANDBOX_TTL_HOURS * 60 * 60 * 1000);
-  await Store.updateOne({ _id: storeId } as never, { $set: { isSandbox: true, sandboxExpiresAt: expiresAt } });
+  // Sandboxes get 'pro' so the 28-product demo catalogue never trips the
+  // free plan's 15-product limit when a visitor tries adding products.
+  await Store.updateOne({ _id: storeId } as never, { $set: { isSandbox: true, sandboxExpiresAt: expiresAt, subscriptionPlan: 'pro' } });
 
   await applyStorePublic(storeId);
   const productCount = await seedCatalogue(storeId);
