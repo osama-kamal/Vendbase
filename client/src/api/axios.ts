@@ -126,6 +126,27 @@ export function attachAuthRefresh(instance: AxiosInstance) {
       const status = error.response?.status;
       const message: string = error.response?.data?.message ?? 'Something went wrong';
 
+      // Stale cross-tenant token recovery. A visitor can carry an accessToken
+      // minted for a DIFFERENT store (an expired sandbox, an earlier demo
+      // session, an old deployment): the backend's cross-tenant guard then
+      // rejects every request on this storefront with 403 "Token does not
+      // belong to this store", and the UI showed raw error toasts for data
+      // that is actually public. Drop the stale session and retry once
+      // anonymously; anything that genuinely needs auth surfaces its own
+      // 401/login flow afterwards.
+      const isCrossTenant =
+        status === 403 &&
+        error.response?.data?.code === 'FORBIDDEN' &&
+        message.includes('does not belong to this store');
+
+      if (isCrossTenant && !original._retryAnon) {
+        original._retryAnon = true;
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+        delete original.headers.Authorization;
+        return instance(original);
+      }
+
       // Auth endpoints (login, register, reset-password) legitimately return 401
       // for bad credentials — don't attempt a silent token refresh for those.
       const isAuthEndpoint = original.url &&
