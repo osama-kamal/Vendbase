@@ -59,6 +59,17 @@ export const signupLimiter = makeLimiter(
 );
 
 /**
+ * Demo sandbox minting. More forgiving than signup: a visitor may legitimately
+ * want a fresh sandbox after theirs expires, and every sandbox self-destructs
+ * after 24h, so the real backstop is the live-sandbox cap in demo.service.
+ */
+export const sandboxLimiter = makeLimiter(
+  60 * 60 * 1000,
+  10,
+  'You have opened several admin sandboxes already. Please try again later - each sandbox stays available for 24 hours.'
+);
+
+/**
  * Coupon code validation.
  *
  * Public, and returns distinct errors for "not found" / "expired" / "minimum
